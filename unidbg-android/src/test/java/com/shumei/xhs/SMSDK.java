@@ -11,7 +11,6 @@ import com.github.unidbg.linux.android.dvm.StringObject;
 import com.github.unidbg.linux.android.dvm.VM;
 import com.github.unidbg.linux.android.dvm.jni.ProxyClassFactory;
 import com.github.unidbg.memory.Memory;
-import com.kero.crypto.AES;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,21 +22,25 @@ public class SMSDK {
     private final AndroidEmulator emulator;
     private final VM vm;
     private final Module module;
+
+
     private final DvmClass SMSDK;
     private final String soName = "libsmsdk.so";
     private final String soPath = "unidbg-android/src/test/resources/example_binaries/armeabi-v7a" + soName;
+    private final String processName = "com.xingin.xhs";
     private final boolean logging;
 
-    private static AndroidEmulator createARMEmulator() {
+    private static AndroidEmulator createARMEmulator(String processName) {
         return AndroidEmulatorBuilder.for32Bit()
-                .setProcessName("com.xingin.xhs")
+                .setProcessName(processName)
                 .addBackendFactory(new DynarmicFactory(true))
+                .setRootDir(new File("target/rootfs"))
                 .build();
     }
 
     public SMSDK(boolean logging){
         this.logging = logging;
-        emulator =  createARMEmulator();
+        emulator =  createARMEmulator(processName);
         final Memory memory = emulator.getMemory();
         memory.setLibraryResolver(new AndroidResolver(23));
 
@@ -63,10 +66,10 @@ public class SMSDK {
         return SMSDK.callStaticJniMethodObject(emulator, "x2(Ljava/lang/String;Ljava/lang/String;)", randomString, data);
     }
 
-    public static String y1(String y1Data, String key) {
-        byte[] iv = new byte[]{(byte)0x30, (byte)0x31, (byte)0x30, (byte)0x32, (byte)0x30, (byte)0x33, (byte)0x30, (byte)0x34, (byte)0x30, (byte)0x35, (byte)0x30, (byte)0x36, (byte)0x30, (byte)0x37, (byte)0x30, (byte)0x38};
-        return AES.encrypt(y1Data.getBytes(), key.getBytes(), iv);
-    }
+//    public static String y1(String y1Data, String key) {
+//        byte[] iv = new byte[]{(byte)0x30, (byte)0x31, (byte)0x30, (byte)0x32, (byte)0x30, (byte)0x33, (byte)0x30, (byte)0x34, (byte)0x30, (byte)0x35, (byte)0x30, (byte)0x36, (byte)0x30, (byte)0x37, (byte)0x30, (byte)0x38};
+//        return AES.encrypt(y1Data.getBytes(), key.getBytes(), iv);
+//    }
 
     public static byte[] encode(String str) {
         byte[] bytes = str.getBytes();
