@@ -41,6 +41,9 @@ public class BaseAndroidEmulator extends AbstractJni implements IOResolver{
     }
 
     private static AndroidEmulator createARMEmulator(String processName) {
+        /*
+            创建虚拟文件系统, 与IOResolver实现的具体文件处理并不冲突
+        */
         return AndroidEmulatorBuilder.for32Bit()
                 .setProcessName(processName)
                 .addBackendFactory(new DynarmicFactory(true))
@@ -50,6 +53,9 @@ public class BaseAndroidEmulator extends AbstractJni implements IOResolver{
 
     @Override
     public FileResult resolve(Emulator emulator, String pathname, int oflags){
+        /*
+            处理文件IO
+         */
         System.out.println("Path: " + pathname);
         return null;
     }
