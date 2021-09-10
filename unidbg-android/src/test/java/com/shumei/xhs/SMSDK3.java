@@ -31,6 +31,7 @@ public class SMSDK3 extends BaseAndroidEmulator {
 
     public static void main(String[] args) {
         SMSDK3 smsdk = new SMSDK3();
+        smsdk.y1(risk_json);
     }
 
     public String y1(String data) {
@@ -42,7 +43,7 @@ public class SMSDK3 extends BaseAndroidEmulator {
         params.add(1);
         params.add(vm.addLocalObject(new StringObject(vm, risk_json)));
         params.add(1);
-        params.add(vm.addLocalObject(new StringObject(vm, null)));
+        params.add(vm.addLocalObject(null));
 
         Number number = module.callFunction(emulator, 0x1A734, params.toArray())[0];
         String result = vm.getObject(number.intValue()).getValue().toString();
