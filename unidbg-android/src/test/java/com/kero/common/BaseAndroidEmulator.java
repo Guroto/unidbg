@@ -12,20 +12,45 @@ import com.github.unidbg.linux.android.dvm.AbstractJni;
 import com.github.unidbg.linux.android.dvm.DalvikModule;
 import com.github.unidbg.linux.android.dvm.Jni;
 import com.github.unidbg.linux.android.dvm.VM;
+import com.github.unidbg.linux.file.ByteArrayFileIO;
+import com.github.unidbg.linux.file.SimpleFileIO;
 import com.github.unidbg.memory.Memory;
 import com.github.unidbg.virtualmodule.android.AndroidModule;
+import com.kero.kit.FileProcess;
 
 import java.io.File;
 
 
 public class BaseAndroidEmulator extends AbstractJni implements IOResolver{
-    public final AndroidEmulator emulator;
+    public String processName;
+    public String procDirPath;
     public final VM vm;
+    public final int Pid;
+    public final Module module;
+    public DalvikModule dm;
+    public final AndroidEmulator emulator;
 
-    public BaseAndroidEmulator(String processName, String APKPath, String SoPath, boolean logging){
-        this.emulator = createARMEmulator(processName);
-        Memory memory = MemoryProcess(emulator, 28);
-        this.vm = VmProcess(emulator, APKPath, memory);
+    public BaseAndroidEmulator(String procName, String APKPath, String baseSoPath, String[] soList, boolean logging){
+        processName = procName;
+        procDirPath = "target/rootfs/proc/" + processName;
+        emulator = createARMEmulator(processName);
+        Pid = emulator.getPid();
+        System.out.println("*[PID]: " + Pid);
+        // 绑定IO重定向
+        emulator.getSyscallHandler().addIOResolver(this);
+        Memory memory = MemoryProcess(emulator, 23);
+        vm = VmProcess(emulator, APKPath, memory);
+        // 调用JNI OnLoad
+        vm.setJni(this);
+        vm.setVerbose(logging);
+
+        // 加载so文件至虚拟内容
+        for (String s : soList) {
+            dm = vm.loadLibrary(new File(baseSoPath + s), true);
+            dm.callJNI_OnLoad(this.emulator);
+        }
+
+        module = dm.getModule();
     }
 
     private static VM VmProcess(AndroidEmulator emulator, String APKPath, Memory memory){
@@ -56,7 +81,15 @@ public class BaseAndroidEmulator extends AbstractJni implements IOResolver{
         /*
             处理文件IO
          */
-        System.out.println("Path: " + pathname);
+        System.out.println("*[Access Path]: " + pathname);
+        if (("proc/" + emulator.getPid() + "/cmdline").equals(pathname)){
+            return FileResult.success(new ByteArrayFileIO(oflags, pathname, processName.getBytes()));
+        }else if((("proc/" + emulator.getPid() + "/status").equals(pathname))){
+            System.out.println(procDirPath + "/status");
+            String content = FileProcess.readFile(procDirPath + "/status");
+            content = content.replaceAll("__PID__", String.valueOf(this.Pid));
+            return FileResult.success(new ByteArrayFileIO(oflags, pathname, content.getBytes()));
+        }
         return null;
     }
 }
