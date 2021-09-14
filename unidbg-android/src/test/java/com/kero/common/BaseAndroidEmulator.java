@@ -19,9 +19,11 @@ import com.github.unidbg.virtualmodule.android.AndroidModule;
 import com.kero.kit.FileProcess;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 
-public class BaseAndroidEmulator extends AbstractJni implements IOResolver{
+public abstract class BaseAndroidEmulator extends AbstractJni implements IOResolver{
     public String processName;
     public String procDirPath;
     public final VM vm;
@@ -74,6 +76,16 @@ public class BaseAndroidEmulator extends AbstractJni implements IOResolver{
                 .addBackendFactory(new DynarmicFactory(true))
                 .setRootDir(new File("target/rootfs"))
                 .build();
+    }
+
+    public List<Object> initParams(int length){
+        /*
+            初始化参数列表, 默认参数1为JNIENV, 参数2为jobject
+         */
+        List<Object> params = new ArrayList<>(length);
+        params.add(vm.getJNIEnv());
+        params.add(0);
+        return params;
     }
 
     @Override

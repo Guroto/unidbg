@@ -14,27 +14,19 @@ import com.github.unidbg.linux.android.dvm.array.ByteArray;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmBoolean;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmInteger;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmLong;
+import javafx.application.Application;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.zip.GZIPOutputStream;
 
 public abstract class AbstractJni implements Jni {
 
@@ -151,6 +143,10 @@ public abstract class AbstractJni implements Jni {
 
     @Override
     public boolean callStaticBooleanMethod(BaseVM vm, DvmClass dvmClass, String signature, VarArg varArg) {
+        switch (signature){
+            case "android/os/Debug->isDebuggerConnected()Z":
+                return false;
+        }
         throw new UnsupportedOperationException(signature);
     }
 
@@ -380,6 +376,7 @@ public abstract class AbstractJni implements Jni {
             case "android/app/ActivityThread->currentActivityThread()Landroid/app/ActivityThread;":
                 return dvmClass.newObject(null);
             case "android/app/ActivityThread->currentApplication()Landroid/app/Application;":
+            case "android/app/ActivityThread->getApplication()Landroid/app/Application;":
                 return vm.resolveClass("android/app/Application", vm.resolveClass("android/content/ContextWrapper", vm.resolveClass("android/content/Context"))).newObject(signature);
             case "java/util/Locale->getDefault()Ljava/util/Locale;":
                 return dvmClass.newObject(Locale.getDefault());
@@ -491,6 +488,10 @@ public abstract class AbstractJni implements Jni {
 
     @Override
     public boolean callBooleanMethod(BaseVM vm, DvmObject<?> dvmObject, DvmMethod dvmMethod, VarArg varArg) {
+        switch (dvmMethod.getSignature()){
+            case "android/os/Debug->isDebuggerConnected()Z":
+                return false;
+        }
         return callBooleanMethod(vm, dvmObject, dvmMethod.getSignature(), varArg);
     }
 
@@ -633,6 +634,17 @@ public abstract class AbstractJni implements Jni {
                 } catch (UnsupportedEncodingException e) {
                     throw new IllegalStateException(e);
                 }
+            case "java/lang/Throwable-><init>()V":
+                return vm.resolveClass("java/lang/Throwable").newObject(new Throwable());
+            case "java/io/ByteArrayOutputStream-><init>()V":
+                return vm.resolveClass("java/io/ByteArrayOutputStream").newObject(new ByteArrayOutputStream());
+            case "java/util/zip/GZIPOutputStream-><init>(Ljava/io/OutputStream;)V":
+                try{
+                    return vm.resolveClass("java/util/zip/GZIPOutputStream").newObject(new GZIPOutputStream((OutputStream) varArg.getObjectArg(0).getValue()));
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+
         }
 
         throw new UnsupportedOperationException(signature);
@@ -795,6 +807,11 @@ public abstract class AbstractJni implements Jni {
             }
             case "java/lang/Class->getClassLoader()Ljava/lang/ClassLoader;":
                 return new ClassLoader(vm, signature);
+            case "java/io/ByteArrayOutputStream->toByteArray()[B":
+                ByteArrayOutputStream outputStream = (ByteArrayOutputStream)dvmObject.getValue();
+                byte[] result = outputStream.toByteArray();
+                System.out.println("[ByteArrayOutputStream][toByteArray]: " + Arrays.toString(result));
+                return new ByteArray(vm ,result);
         }
 
         throw new UnsupportedOperationException(signature);
@@ -849,6 +866,35 @@ public abstract class AbstractJni implements Jni {
 
     @Override
     public void callVoidMethod(BaseVM vm, DvmObject<?> dvmObject, String signature, VarArg varArg) {
+        switch (signature){
+            case "java/util/zip/GZIPOutputStream->write([B)V":
+                byte[] input = (byte[]) varArg.getObjectArg(0).getValue();
+                GZIPOutputStream gzipOutputStream = (GZIPOutputStream) dvmObject.getValue();
+                try{
+                    System.out.println("[GZIPOutputStream][WRITE]: " + new String(input));
+                    System.out.println("[GZIPOutputStream][WRITE]: " + Arrays.toString(input));
+                    gzipOutputStream.write(input);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                return;
+            case "java/util/zip/GZIPOutputStream->finish()V":
+                GZIPOutputStream gzipOutputStreamFinish = (GZIPOutputStream) dvmObject.getValue();
+                try{
+                    gzipOutputStreamFinish.finish();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+                return;
+            case "java/util/zip/GZIPOutputStream->close()V":
+                GZIPOutputStream gzipOutputStreamClose = (GZIPOutputStream) dvmObject.getValue();
+                try{
+                    gzipOutputStreamClose.close();
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+                return;
+        }
         throw new UnsupportedOperationException(signature);
     }
 
