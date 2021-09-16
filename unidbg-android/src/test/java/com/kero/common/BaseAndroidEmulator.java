@@ -8,6 +8,8 @@ import com.github.unidbg.file.IOResolver;
 import com.github.unidbg.AndroidEmulator;
 import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
 import com.github.unidbg.linux.android.AndroidResolver;
+import com.github.unidbg.linux.android.SystemPropertyHook;
+import com.github.unidbg.linux.android.SystemPropertyProvider;
 import com.github.unidbg.linux.android.dvm.AbstractJni;
 import com.github.unidbg.linux.android.dvm.DalvikModule;
 import com.github.unidbg.linux.android.dvm.Jni;
@@ -41,6 +43,21 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
         // 绑定IO重定向
         emulator.getSyscallHandler().addIOResolver(this);
         Memory memory = MemoryProcess(emulator, 23);
+        // hook system property
+        SystemPropertyHook systemPropertyHook = new SystemPropertyHook(emulator);
+        systemPropertyHook.setPropertyProvider(new SystemPropertyProvider() {
+            @Override
+            public String getProperty(String key) {
+                System.out.println("[system_property_get]: " + key);
+                switch (key){
+                    case "system_property_get":
+
+                }
+                return null;
+            }
+        });
+        memory.addHookListener(systemPropertyHook);
+
         vm = VmProcess(emulator, APKPath, memory);
         // 调用JNI OnLoad
         vm.setJni(this);
