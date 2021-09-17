@@ -15,6 +15,8 @@ import com.github.unidbg.linux.android.dvm.wrapper.DvmBoolean;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmInteger;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmLong;
 import javafx.application.Application;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.HexDump;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -872,7 +874,10 @@ public abstract class AbstractJni implements Jni {
                 GZIPOutputStream gzipOutputStream = (GZIPOutputStream) dvmObject.getValue();
                 try{
                     System.out.println("[GZIPOutputStream][WRITE]: " + new String(input));
-                    System.out.println("[GZIPOutputStream][WRITE]: " + Arrays.toString(input));
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    HexDump.dump(input, 0, out, 0);
+                    String hexDump = out.toString();
+                    System.out.println("[GZIPOutputStream][WRITE]: \n" + hexDump);
                     gzipOutputStream.write(input);
                 }catch (Exception e){
                     e.printStackTrace();

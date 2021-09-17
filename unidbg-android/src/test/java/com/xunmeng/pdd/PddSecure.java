@@ -125,6 +125,7 @@ public class PddSecure extends BaseAndroidEmulator {
             case "java/lang/Throwable->getStackTrace()[Ljava/lang/StackTraceElement;":
                 StackTraceElement[] elements = {
                         new StackTraceElement("com.xunmeng.pinduoduo.secure.DeviceNative", "", "", 0),
+                        new StackTraceElement("com.xunmeng.pinduoduo.secure.Settings", "test", "", 0),
                 };
                 DvmObject[] objs = new DvmObject[elements.length];
                 for(int i=0; i<elements.length; i++){

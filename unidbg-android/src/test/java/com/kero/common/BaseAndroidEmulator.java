@@ -26,6 +26,8 @@ import java.util.List;
 
 
 public abstract class BaseAndroidEmulator extends AbstractJni implements IOResolver{
+    public String procRootDir="target/rootfs/proc/";;
+    public String systemRootDir = "target/rootfs/system/";
     public String processName;
     public String procDirPath;
     public final VM vm;
@@ -36,7 +38,7 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
 
     public BaseAndroidEmulator(String procName, String APKPath, String baseSoPath, String[] soList, boolean logging){
         processName = procName;
-        procDirPath = "target/rootfs/proc/" + processName;
+        procDirPath = procRootDir + processName;
         emulator = createARMEmulator(processName);
         Pid = emulator.getPid();
         System.out.println("*[PID]: " + Pid);
@@ -111,12 +113,18 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
             处理文件IO
          */
         System.out.println("*[Access Path]: " + pathname);
-        if (("proc/" + emulator.getPid() + "/cmdline").equals(pathname)){
+        if (("/proc/" + emulator.getPid() + "/cmdline").equals(pathname)){
             return FileResult.success(new ByteArrayFileIO(oflags, pathname, processName.getBytes()));
-        }else if((("proc/" + emulator.getPid() + "/status").equals(pathname))){
+        }else if((("/proc/" + emulator.getPid() + "/status").equals(pathname))){
             System.out.println(procDirPath + "/status");
             String content = FileProcess.readFile(procDirPath + "/status");
             content = content.replaceAll("__PID__", String.valueOf(this.Pid));
+            return FileResult.success(new ByteArrayFileIO(oflags, pathname, content.getBytes()));
+        }else if(("/proc/version".equals(pathname))){
+            String content = FileProcess.readFile(procRootDir + "version");
+            return FileResult.success(new ByteArrayFileIO(oflags, pathname, content.getBytes()));
+        }else if(("/system/build.prop".equals(pathname))){
+            String content = FileProcess.readFile(systemRootDir + "build.prop");
             return FileResult.success(new ByteArrayFileIO(oflags, pathname, content.getBytes()));
         }
         return null;
