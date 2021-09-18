@@ -10,12 +10,7 @@ import com.github.unidbg.arm.context.RegisterContext;
 import com.github.unidbg.debugger.DebuggerType;
 import com.github.unidbg.hook.HookContext;
 import com.github.unidbg.hook.ReplaceCallback;
-import com.github.unidbg.hook.hookzz.Dobby;
-import com.github.unidbg.hook.hookzz.HookEntryInfo;
-import com.github.unidbg.hook.hookzz.HookZz;
-import com.github.unidbg.hook.hookzz.IHookZz;
-import com.github.unidbg.hook.hookzz.InstrumentCallback;
-import com.github.unidbg.hook.hookzz.WrapCallback;
+import com.github.unidbg.hook.hookzz.*;
 import com.github.unidbg.hook.xhook.IxHook;
 import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
 import com.github.unidbg.linux.android.AndroidResolver;
@@ -25,6 +20,7 @@ import com.github.unidbg.linux.android.dvm.DvmClass;
 import com.github.unidbg.linux.android.dvm.VM;
 import com.github.unidbg.linux.android.dvm.array.ByteArray;
 import com.github.unidbg.memory.Memory;
+import com.github.unidbg.pointer.UnidbgPointer;
 import com.github.unidbg.utils.Inspector;
 import com.sun.jna.Pointer;
 
@@ -71,6 +67,24 @@ public class TTEncrypt {
         Inspector.inspect(data, "ttEncrypt");
 
         test.destroy();
+    }
+
+    public void inline_hook(int methodOffset, final int targetOffset) {
+        UnidbgPointer target_ptr = UnidbgPointer.pointer(emulator, module.base + targetOffset);
+        IHookZz hookZz = HookZz.getInstance(emulator);
+        hookZz.enable_arm_arm64_b_branch();
+        hookZz.wrap(module.base + methodOffset + 1, new WrapCallback<HookZzArm32RegisterContext>() {
+            @Override
+            public void preCall(Emulator<?> emulator, HookZzArm32RegisterContext ctx, HookEntryInfo info) {
+                UnidbgPointer target_ptr = UnidbgPointer.pointer(emulator, module.base + targetOffset);
+                String target = target_ptr.getPointer(0).getString(0, "utf-8");
+                System.out.println("target: " + target);
+            }
+
+            @Override
+            public void postCall(Emulator<?> emulator, HookZzArm32RegisterContext ctx, HookEntryInfo info) {
+            }
+        });
     }
 
     byte[] ttEncrypt() {

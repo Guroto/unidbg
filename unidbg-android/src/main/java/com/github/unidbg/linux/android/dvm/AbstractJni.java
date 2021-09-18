@@ -104,6 +104,12 @@ public abstract class AbstractJni implements Jni {
 
     @Override
     public int getStaticIntField(BaseVM vm, DvmClass dvmClass, String signature) {
+        switch (signature){
+            case "android/telephony/TelephonyManager->PHONE_TYPE_GSM:I":
+                return 2;
+            case "android/telephony/TelephonyManager->PHONE_TYPE_CDMA:I":
+                return 1;
+        }
         throw new UnsupportedOperationException(signature);
     }
 
@@ -814,6 +820,14 @@ public abstract class AbstractJni implements Jni {
                 byte[] result = outputStream.toByteArray();
                 System.out.println("[ByteArrayOutputStream][toByteArray]: " + Arrays.toString(result));
                 return new ByteArray(vm ,result);
+            case "android/telephony/TelephonyManager->getDeviceId()Ljava/lang/String;":
+                return new StringObject(vm, String.valueOf(123456789123456L));
+            case "android/telephony/TelephonyManager->getDeviceId(I)Ljava/lang/String;":
+                return new StringObject(vm, String.valueOf(123456789123457L));
+            case "android/telephony/TelephonyManager->getSimSerialNumber()Ljava/lang/String;":
+                return new StringObject(vm,  String.valueOf(310150123456789L));
+            case "android/telephony/TelephonyManager->getSubscriberId()Ljava/lang/String;":
+                return new StringObject(vm, "898601YYMHAAAXXXXXXP");
         }
 
         throw new UnsupportedOperationException(signature);
@@ -845,6 +859,9 @@ public abstract class AbstractJni implements Jni {
                     return sig.getHashCode();
                 }
                 break;
+            }
+            case "android/telephony/TelephonyManager->getPhoneType()I":{
+                return 1;
             }
         }
 

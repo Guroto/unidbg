@@ -3,6 +3,8 @@ package com.kero.common;
 import com.github.unidbg.Emulator;
 import com.github.unidbg.Module;
 import com.github.unidbg.arm.backend.DynarmicFactory;
+import com.github.unidbg.arm.context.RegisterContext;
+import com.github.unidbg.debugger.DebuggerType;
 import com.github.unidbg.file.FileResult;
 import com.github.unidbg.file.IOResolver;
 import com.github.unidbg.AndroidEmulator;
@@ -10,15 +12,13 @@ import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
 import com.github.unidbg.linux.android.AndroidResolver;
 import com.github.unidbg.linux.android.SystemPropertyHook;
 import com.github.unidbg.linux.android.SystemPropertyProvider;
-import com.github.unidbg.linux.android.dvm.AbstractJni;
-import com.github.unidbg.linux.android.dvm.DalvikModule;
-import com.github.unidbg.linux.android.dvm.Jni;
-import com.github.unidbg.linux.android.dvm.VM;
+import com.github.unidbg.linux.android.dvm.*;
 import com.github.unidbg.linux.file.ByteArrayFileIO;
 import com.github.unidbg.linux.file.SimpleFileIO;
 import com.github.unidbg.memory.Memory;
 import com.github.unidbg.virtualmodule.android.AndroidModule;
 import com.kero.kit.FileProcess;
+import com.xunmeng.pdd.PddSecureHook;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -50,15 +50,17 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
         systemPropertyHook.setPropertyProvider(new SystemPropertyProvider() {
             @Override
             public String getProperty(String key) {
-                System.out.println("[system_property_get]: " + key);
-                switch (key){
-                    case "system_property_get":
 
+                System.out.println("[system_property_get]: " + key + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
+                switch (key){
+                    case "ro.product.brand":
+                        return "BRAND";
                 }
                 return null;
             }
         });
         memory.addHookListener(systemPropertyHook);
+        memory.addHookListener(new PddSecureHook(emulator));
 
         vm = VmProcess(emulator, APKPath, memory);
         // 调用JNI OnLoad

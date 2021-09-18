@@ -1,12 +1,21 @@
 package com.xunmeng.pdd;
 
+import com.github.unidbg.Emulator;
 import com.github.unidbg.Module;
+import com.github.unidbg.arm.context.Arm32RegisterContext;
+import com.github.unidbg.arm.context.RegisterContext;
+import com.github.unidbg.hook.hookzz.HookEntryInfo;
+import com.github.unidbg.hook.hookzz.HookZz;
+import com.github.unidbg.hook.hookzz.IHookZz;
+import com.github.unidbg.hook.hookzz.InstrumentCallback;
 import com.github.unidbg.linux.android.dvm.*;
 import com.github.unidbg.linux.android.dvm.array.ArrayObject;
 import com.github.unidbg.linux.android.dvm.array.ByteArray;
 import com.github.unidbg.linux.android.SystemPropertyHook;
+import com.github.unidbg.utils.Inspector;
 import com.kero.common.BaseAndroidEmulator;
 import com.kero.kit.gzipProcess;
+import com.sun.jna.Pointer;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -166,6 +175,9 @@ public class PddSecure extends BaseAndroidEmulator {
     }
 
     public void deviceInfo2(){
+        inlineHookSub_11368();
+        inlineHookSub_1150C();
+//        inlineHookSub_140F4();
         List<Object> params = initParams(10);
         // custom = null;
         DvmObject<?> context = vm.resolveClass("android/content/Context").newObject(null);
@@ -215,5 +227,50 @@ public class PddSecure extends BaseAndroidEmulator {
         Number number = module.callFunction(emulator, 0x3DCB8, params.toArray())[0];
         String result = vm.getObject(number.intValue()).getValue().toString();
         System.out.println("[DEVICE INFO]: " + result);
+    }
+
+    private void inlineHookSub_11368(){
+        int offset = 0x11368;
+        IHookZz hookZz = HookZz.getInstance(emulator);
+        hookZz.instrument(module.base + offset + 1, new InstrumentCallback<Arm32RegisterContext>() {
+            @Override
+            public void dbiCall(Emulator<?> emulator, Arm32RegisterContext ctx, HookEntryInfo info) {
+                String args1 = Integer.toHexString(ctx.getIntArg(0));
+                String index = Integer.toHexString(ctx.getIntArg(1));
+                int length = ctx.getIntArg(3);
+                String args2 = Integer.toHexString(ctx.getIntArg(2));
+                System.out.println("[address1] " + args1 + " [address 2] " + args2 + " [index] " + index + " [length] " + length  + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
+            }
+        });
+    }
+
+    private void inlineHookSub_1150C(){
+        int offset = 0x1150C;
+        IHookZz hookZz = HookZz.getInstance(emulator);
+        hookZz.instrument(module.base + offset + 1, new InstrumentCallback<Arm32RegisterContext>() {
+            @Override
+            public void dbiCall(Emulator<?> emulator, Arm32RegisterContext ctx, HookEntryInfo info) {
+                String args1 = Integer.toHexString(ctx.getIntArg(0));
+                String args2 = Integer.toHexString(ctx.getIntArg(1));
+                String index = Integer.toHexString(ctx.getIntArg(2));
+                int length = ctx.getIntArg(3);
+                System.out.println("[address1] " + args1 + " [address 2] " + args2 + " [index] " + index + " [length] " + length  + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
+            }
+        });
+    }
+
+    private void inlineHookSub_140F4(){
+        int offset = 0x140F4;
+        IHookZz hookZz = HookZz.getInstance(emulator);
+        hookZz.instrument(module.base + offset + 1, new InstrumentCallback<Arm32RegisterContext>() {
+            @Override
+            public void dbiCall(Emulator<?> emulator, Arm32RegisterContext ctx, HookEntryInfo info) {
+                String args1 = Integer.toHexString(ctx.getIntArg(0));
+                String args2 = Integer.toHexString(ctx.getIntArg(1));
+                String index = Integer.toHexString(ctx.getIntArg(2));
+                int length = ctx.getIntArg(3);
+                System.out.println("[address1] " + args1 + " [address 2] " + args2 + " [index] " + index + " [length] " + length  + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
+            }
+        });
     }
 }
