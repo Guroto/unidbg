@@ -36,7 +36,7 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
     public DalvikModule dm;
     public final AndroidEmulator emulator;
 
-    public BaseAndroidEmulator(String procName, String APKPath, String baseSoPath, String[] soList, boolean logging){
+    public BaseAndroidEmulator(String procName, String APKPath, String baseSoPath, String[] soList, boolean verbose){
         processName = procName;
         procDirPath = procRootDir + processName;
         emulator = createARMEmulator(processName);
@@ -50,7 +50,6 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
         systemPropertyHook.setPropertyProvider(new SystemPropertyProvider() {
             @Override
             public String getProperty(String key) {
-
                 System.out.println("[system_property_get]: " + key + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
                 switch (key){
                     case "ro.product.brand":
@@ -60,12 +59,11 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
             }
         });
         memory.addHookListener(systemPropertyHook);
-        memory.addHookListener(new PddSecureHook(emulator));
 
         vm = VmProcess(emulator, APKPath, memory);
         // 调用JNI OnLoad
         vm.setJni(this);
-        vm.setVerbose(logging);
+        vm.setVerbose(verbose);
 
         // 加载so文件至虚拟内容
         for (String s : soList) {

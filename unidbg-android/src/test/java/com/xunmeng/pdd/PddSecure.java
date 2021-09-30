@@ -22,6 +22,7 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +38,10 @@ public class PddSecure extends BaseAndroidEmulator {
         super(processName, APKPath, baseSoPath, soList, verbose);
         DalvikModule dm_userEnv = vm.loadLibrary(new File(baseSoPath + "libUserEnv.so"), true);
         dm_userEnv.callJNI_OnLoad(emulator);
+
+        // hook
+        PddSecureHook myHook =  new PddSecureHook(emulator, module);
+        myHook.hook(0x113FC, 0x114A6, 100);
     }
 
     public static void main(String[] args) throws IOException {
@@ -175,9 +180,9 @@ public class PddSecure extends BaseAndroidEmulator {
     }
 
     public void deviceInfo2(){
-        inlineHookSub_11368();
-        inlineHookSub_1150C();
-//        inlineHookSub_140F4();
+//        inlineHookSub_11368();
+//        inlineHookSub_1150C();
+        inlineHookSub_113FC();
         List<Object> params = initParams(10);
         // custom = null;
         DvmObject<?> context = vm.resolveClass("android/content/Context").newObject(null);
@@ -216,7 +221,7 @@ public class PddSecure extends BaseAndroidEmulator {
                 (byte)0x33, (byte)0x32, (byte)0x39, (byte)0x61, (byte)0x30
 
         };
-        byte[] gzipData = gzipProcess.encode(new String(data));
+        byte[] gzipData = gzipProcess.encode(data);
         List<Object> params = initParams(10);
         params.add(new ByteArray(vm, "pdd_aes_180121_1".getBytes()));
         params.add(new ByteArray(vm, gzipData));
@@ -259,17 +264,19 @@ public class PddSecure extends BaseAndroidEmulator {
         });
     }
 
-    private void inlineHookSub_140F4(){
-        int offset = 0x140F4;
+    private void inlineHookSub_113FC(){
+        int offset = 0x113FC;
         IHookZz hookZz = HookZz.getInstance(emulator);
         hookZz.instrument(module.base + offset + 1, new InstrumentCallback<Arm32RegisterContext>() {
             @Override
             public void dbiCall(Emulator<?> emulator, Arm32RegisterContext ctx, HookEntryInfo info) {
                 String args1 = Integer.toHexString(ctx.getIntArg(0));
-                String args2 = Integer.toHexString(ctx.getIntArg(1));
-                String index = Integer.toHexString(ctx.getIntArg(2));
-                int length = ctx.getIntArg(3);
-                System.out.println("[address1] " + args1 + " [address 2] " + args2 + " [index] " + index + " [length] " + length  + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
+                String index = Integer.toHexString(ctx.getIntArg(1));
+                String args2 = Integer.toHexString(ctx.getIntArg(2));
+                String args3 = Integer.toHexString(ctx.getIntArg(3));
+//                System.out.println(Arrays.toString(ctx.getPointerArg(2).getByteArray(1, 8)));
+                int length = ctx.getIntArg(4);
+                System.out.println("[address1] " + args1 + " [address 2] " + args2 + " [address 3] " + args3 + " [index] " + index + " [length] " + length  + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
             }
         });
     }
