@@ -8,14 +8,14 @@ import com.github.unidbg.debugger.DebuggerType;
 import com.github.unidbg.file.FileResult;
 import com.github.unidbg.file.IOResolver;
 import com.github.unidbg.AndroidEmulator;
-import com.github.unidbg.linux.android.AndroidEmulatorBuilder;
-import com.github.unidbg.linux.android.AndroidResolver;
-import com.github.unidbg.linux.android.SystemPropertyHook;
-import com.github.unidbg.linux.android.SystemPropertyProvider;
+import com.github.unidbg.file.linux.AndroidFileIO;
+import com.github.unidbg.linux.android.*;
 import com.github.unidbg.linux.android.dvm.*;
 import com.github.unidbg.linux.file.ByteArrayFileIO;
 import com.github.unidbg.linux.file.SimpleFileIO;
 import com.github.unidbg.memory.Memory;
+import com.github.unidbg.memory.SvcMemory;
+import com.github.unidbg.unix.UnixSyscallHandler;
 import com.github.unidbg.virtualmodule.android.AndroidModule;
 import com.kero.kit.FileProcess;
 import com.xunmeng.pdd.PddSecureHook;
@@ -37,6 +37,7 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
     public final AndroidEmulator emulator;
 
     public BaseAndroidEmulator(String procName, String APKPath, String baseSoPath, String[] soList, boolean verbose){
+        String libc = "unidbg-android/src/main/resources/android/sdk19/lib/libc.so";
         processName = procName;
         procDirPath = procRootDir + processName;
         emulator = createARMEmulator(processName);
@@ -46,24 +47,18 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
         emulator.getSyscallHandler().addIOResolver(this);
         Memory memory = MemoryProcess(emulator, 23);
         // hook system property
-        SystemPropertyHook systemPropertyHook = new SystemPropertyHook(emulator);
-        systemPropertyHook.setPropertyProvider(new SystemPropertyProvider() {
-            @Override
-            public String getProperty(String key) {
-                System.out.println("[system_property_get]: " + key + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
-                switch (key){
-                    case "ro.product.brand":
-                        return "BRAND";
-                }
-                return null;
-            }
-        });
-        memory.addHookListener(systemPropertyHook);
+        memory.addHookListener(BaseUnidbgHook.systemPropertyHook(emulator));
 
         vm = VmProcess(emulator, APKPath, memory);
+        vm.setVerbose(verbose);
+
+        // hook popen
+        DalvikModule dmLibc = vm.loadLibrary(new File(libc), true);
+        Module moduleLibc = dmLibc.getModule();
+        BaseUnidbgHook.hookPopen(emulator, (int)moduleLibc.findSymbolByName("popen").getAddress());
+
         // 调用JNI OnLoad
         vm.setJni(this);
-        vm.setVerbose(verbose);
 
         // 加载so文件至虚拟内容
         for (String s : soList) {
@@ -72,6 +67,7 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
         }
 
         module = dm.getModule();
+
     }
 
     private static VM VmProcess(AndroidEmulator emulator, String APKPath, Memory memory){
@@ -90,11 +86,25 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
         /*
             创建虚拟文件系统, 与IOResolver实现的具体文件处理并不冲突
         */
-        return AndroidEmulatorBuilder.for32Bit()
-                .setProcessName(processName)
-                .addBackendFactory(new DynarmicFactory(true))
-                .setRootDir(new File("target/rootfs"))
-                .build();
+        AndroidEmulatorBuilder builder = new AndroidEmulatorBuilder(false) {
+            public AndroidEmulator build() {
+                return new AndroidARMEmulator(processName, rootDir,
+                        backendFactories) {
+                    @Override
+                    protected UnixSyscallHandler<AndroidFileIO>
+                    createSyscallHandler(SvcMemory svcMemory) {
+                        return new BaseSysCallHandler(svcMemory);
+                    }
+                };
+            }
+        };
+        return builder.setRootDir(new File("target/rootfs")).build();
+
+//        return AndroidEmulatorBuilder.for32Bit()
+//                .setProcessName(processName)
+//                .addBackendFactory(new DynarmicFactory(true))
+//                .setRootDir(new File("target/rootfs"))
+//                .build();
     }
 
     public List<Object> initParams(int length){

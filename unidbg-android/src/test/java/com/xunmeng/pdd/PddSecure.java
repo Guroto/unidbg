@@ -40,8 +40,8 @@ public class PddSecure extends BaseAndroidEmulator {
         dm_userEnv.callJNI_OnLoad(emulator);
 
         // hook
-        PddSecureHook myHook =  new PddSecureHook(emulator, module);
-        myHook.hook(0x113FC, 0x114A6, 100);
+//        PddSecureHook myHook =  new PddSecureHook(emulator, module);
+//        myHook.hook(0x113FC, 0x114A6, 100);
     }
 
     public static void main(String[] args) throws IOException {
@@ -49,8 +49,9 @@ public class PddSecure extends BaseAndroidEmulator {
         Logger.getLogger(String.valueOf(BaseVM.class)).setLevel(Level.DEBUG);
 //        Logger.getLogger(String.valueOf(SystemPropertyHook.class)).setLevel(Level.DEBUG);
         PddSecure pddSecure = new PddSecure();
-        pddSecure.deviceInfo2();
-//        pddSecure.sub_3DCB8();
+//        pddSecure.deviceInfo2();
+        pddSecure.generateData();
+        pddSecure.sub_3DCB8();
     }
 
     @Override
@@ -58,6 +59,8 @@ public class PddSecure extends BaseAndroidEmulator {
         switch (signature){
             case "android/provider/Settings$Secure->ANDROID_ID:Ljava/lang/String;":
                 return new StringObject(vm, "android_id");
+            case "android/content/Intent->ACTION_BATTERY_CHANGED:Ljava/lang/String;":
+                return new StringObject(vm, "android.intent.action.BATTERY_CHANGED");
         }
         return super.getStaticObjectField(vm, dvmClass, signature);
 
@@ -69,7 +72,7 @@ public class PddSecure extends BaseAndroidEmulator {
             case "android/provider/Settings$Secure->getString(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;":{
                 String arg = (String) varArg.getObjectArg(1).getValue();
                 System.out.println("[Settings$Secure] -> [getString]" + arg);
-                return new StringObject(vm, "");
+                return new StringObject(vm, "android_");
             }
         }
         return super.callStaticObjectMethod(vm, dvmClass, dvmMethod.getSignature(), varArg);
@@ -83,7 +86,8 @@ public class PddSecure extends BaseAndroidEmulator {
                 System.out.println("[Settings$Secure] -> [getString]" + arg);
                 return new StringObject(vm, "");
             case "java/util/UUID->randomUUID()Ljava/util/UUID;":
-                return vm.resolveClass("java/util/UUID").newObject(UUID.randomUUID());
+//                return vm.resolveClass("java/util/UUID").newObject(UUID.randomUUID());
+                return vm.resolveClass("java/util/UUID").newObject("512b86b2-fb13-4a35-b67c-ec1520d0ae4d");
         }
 
         return super.callStaticObjectMethodV(vm, dvmClass, signature, vaList);
@@ -95,6 +99,9 @@ public class PddSecure extends BaseAndroidEmulator {
             case "com/tencent/mars/xlog/PLog->i(Ljava/lang/String;Ljava/lang/String;)V":
                 System.out.println("[ARGS]: " + vaList.getObjectArg(1).getValue());
                 System.out.println("[ARGS]: " + vaList.getObjectArg(0).getValue());
+                return;
+            case "android/view/Display->getRealMetrics(Landroid/util/DisplayMetrics;)V":
+                System.out.println("getRealMetricsCALL");
                 return;
         }
         super.callStaticVoidMethodV(vm, dvmClass, signature, vaList);
@@ -120,10 +127,6 @@ public class PddSecure extends BaseAndroidEmulator {
     @Override
     public DvmObject<?> callObjectMethod(BaseVM vm, DvmObject<?> dvmObject, String signature, VarArg varArg) {
         switch (signature) {
-            case "android/content/Context->getSystemService(Ljava/lang/String;)Ljava/lang/Object;":
-                String arg = varArg.getObjectArg(0).getValue().toString();
-                System.out.println("[getSystemService][ARG-0]: " + arg);
-                return vm.resolveClass("android/telephony/TelephonyManager").newObject(signature);
             case "android/telephony/TelephonyManager->getSimOperatorName()Ljava/lang/String;":
                 return new StringObject(vm, "中国联通");
             case "android/telephony/TelephonyManager->getSimCountryIso()Ljava/lang/String;":
@@ -149,7 +152,10 @@ public class PddSecure extends BaseAndroidEmulator {
             case "java/lang/StackTraceElement->getClassName()Ljava/lang/String;":
                 StackTraceElement element = (StackTraceElement) dvmObject.getValue();
                 return new StringObject(vm, element.getClassName());
-
+            case "android/content/Context->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;":
+                return vm.resolveClass("android/content/SharedPreferences").newObject(signature);
+            case "android/content/SharedPreferences->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;":
+                return new StringObject(vm, "6299d90d187d492ea3c568ef40efe3db");
         }
         return super.callObjectMethod(vm ,dvmObject, signature, varArg);
     }
@@ -171,6 +177,10 @@ public class PddSecure extends BaseAndroidEmulator {
                 assert s1 != null;
                 assert s2 != null;
                 return new StringObject(vm, dvmObject.getValue().toString().replaceAll(s1.getValue(), s2.getValue()));
+            case "GetMethodID(android/view/Display->getRealMetrics(Landroid/util/DisplayMetrics;)V":
+                System.out.println("getRealMetricsCalled");
+                return  vm.resolveClass("android/util/DisplayMetrics").newObject(signature);
+
         }
         return super.callObjectMethodV(vm, dvmObject, signature, vaList);
     }
@@ -191,6 +201,37 @@ public class PddSecure extends BaseAndroidEmulator {
         Number number = module.callFunction(emulator, 0xE3D5, params.toArray())[0];
         String result = vm.getObject(number.intValue()).getValue().toString();
         System.out.println("[DEVICE INFO]: " + result);
+    }
+
+    public void deviceInfo3(){
+        inlineHookSub_114B0();
+        List<Object> params = initParams(10);
+        DvmObject<?> context = vm.resolveClass("android/content/Context").newObject(null);
+        params.add(vm.addLocalObject(context));
+        params.add(1633751637326L);
+        StringObject list_id = new StringObject(vm, "flj75qai");
+        params.add(vm.addLocalObject(list_id));
+        Number number = module.callFunction(emulator, 0xF16D, params.toArray())[0];
+        String result = vm.getObject(number.intValue()).getValue().toString();
+        System.out.println("[DEVICE INFO]: " + result);
+    }
+
+    public void generateData(){
+        List<Object> params = initParams(10);
+        DvmObject<?> context = vm.resolveClass("android/content/Context").newObject(null);
+        params.add(vm.addLocalObject(context));
+        params.add(vm.addLocalObject(new StringObject(vm, "")));
+        params.add(vm.addLocalObject(new StringObject(vm, "ChUG8WFn1bcwFWQoZVggAg==")));
+        params.add(vm.addLocalObject(new StringObject(vm, "")));
+        params.add(vm.addLocalObject(new StringObject(vm, "/storage/emulated/0")));
+        params.add(vm.addLocalObject(new StringObject(vm, "start_by_user=true&app_type=&app_version=5.72.0&device_id=&clipboard_md5=&commitid=1acda8f5b30a7ccd69be847291cdcf70044bbb48&uuid=b1ccbd5d-9829-4382-961a-4af03e16b53f&scene=1&imei_shown=false&instrumentation_chain=android.app.Instrumentation&known_device=1&oaid=&version=33&wallpaper_md5=&sn_1=&sn_2=&sn_3=FA6BE0300728&app_list_info=com.xingin.xhs%3A1632727495529%3Bcom.tencent.mm%3A1617355401602%3Bcom.sankuai.meituan.takeoutnew%3A1593559150728%3Bnet.peerproxy.peerproxy%3A1634094158152%3Brca.rc.tvtaobao%3A1617872004887%3Bcom.tencent.android.qqdownloader%3A1587573301175%3Bjp.co.sumzap.pj0007%3A1587572912890%3Bcom.alimama.moon%3A1616564149655%3Bcom.YostarJP.BlueArchive%3A1628000590410%3Bcom.shizhuang.duapp%3A1618465546730%3Bjust.trust.me%3A1587502139152%3Bcom.xunmeng.pinduoduo%3A1632910320397%3Bcom.example.seccon2015.rock_paper_scissors%3A1587510080102%3Bcom.nikedlab.netcat%3A1633682108408%3Bio.va.exposed%3A1587502128997%3Bcom.ss.android.ugc.aweme%3A1623038152345%3Bcom.topjohnwu.magisk%3A1587146289063%3Bcom.example.xposed%3A1628756771320%3Bcom.yztc.studio.plugin%3A1629361740734%3Bcom.example.devicechange%3A1629279330313%3Bcom.example.xhsxposedplugin%3A1629273460201%3Bcom.tunnelworkshop.postern%3A1621932938933%3Bcom.centown.proprietor%3A1608633490223%3Bcom.guoshi.httpcanary%3A1632898307387%3Bctrip.android.view%3A1631347095105%3Bcom.qooapp.qoohelper%3A1587570534023%3Bcom.joaomgcd.autoinput%3A1634022131867%3Blv.id.dm.airplanemhx%3A1634023429625%3Btw.sonet.princessconnect%3A1587088151063%3Bcom.taobao.taobao%3A1616486965056%3Bin.zhaoj.shadowsocksrr%3A1587670545721%3B&app_list_all=1&input_mathod=com.google.android.inputmethod.latin&ringtone=%E7%A6%85&alarm=%E6%B5%81%E5%8A%A8&notification=%E9%93%83%E5%A3%B0&instrumentation=android.app.Instrumentation&kernelVersion=&brightness=144&simState=0&totalmemory=3945046016&availablememory=2231332864&totalcapacity=26109874176&availablecapacity=13709512704&imei_permission=-1&net_type=WIFI&ip_list=fe80%3A%3Ab89b%3Aa8ff%3Afe4d%3Af7f1%25dummy0%3Bfe80%3A%3Aae37%3A43ff%3Afea3%3A3a0c%25wlan0%3B192.168.120.5%3B&fk_result={%22vInfo%22%3A%7B%22exits%22%3A0%2C%22id%22%3A%22%22%7D,%22antInfo%22%3A%7B%22exits%22%3A0%7D}&machine_arch=ARM&arp_info=192.168.120.254%7C0x1%7C0x2%7C08%3A68%3A8d%3A64%3A98%3A01%7C*%7Cwlan0%7C%3B192.168.121.239%7C0x1%7C0x2%7Cf2%3Aac%3A2a%3Ae7%3A24%3A0a%7C*%7Cwlan0%7C%3B&development_enabled=1&adb_enabled=1&user_phonename=Pixel&process_id=10101&psno=&mediaDrm=0%3A4143333734334133334130430000000000000000000000000000000000000000%7CGoogle%7C14.0.0%7CWidevine+CDM%3B&cid_inner=&cid=&input_device=6%7Csynaptics_dsxv26%7C954faadc99bb5a7c1d0537b923e0490c90b47e98%7C4355%3B&wifi_config=&connected_wifi=%3Cunknown+ssid%3E|02%3A00%3A00%3A00%3A00%3A00|-53&foreground=true&secure_lock=1&currentTime=1634194801581")));
+        params.add(1634194801708L);
+
+//        Number number = module.callFunction(emulator, 0x247D, params.toArray())[0];
+        Number number = module.callFunction(emulator, 0x4354D, params.toArray())[0];
+        System.out.println(number);
+        String result = vm.getObject(number.intValue()).getValue().toString();
+        System.out.println("[GENERATE DATA]: " + result);
     }
 
     public void sub_3DCB8() throws IOException {
@@ -260,6 +301,25 @@ public class PddSecure extends BaseAndroidEmulator {
                 String index = Integer.toHexString(ctx.getIntArg(2));
                 int length = ctx.getIntArg(3);
                 System.out.println("[address1] " + args1 + " [address 2] " + args2 + " [index] " + index + " [length] " + length  + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
+            }
+        });
+    }
+
+    private void inlineHookSub_114B0(){
+        int offset = 0x114B0;
+        IHookZz hookZz = HookZz.getInstance(emulator);
+        hookZz.instrument(module.base + offset + 1, new InstrumentCallback<Arm32RegisterContext>() {
+            @Override
+            public void dbiCall(Emulator<?> emulator, Arm32RegisterContext ctx, HookEntryInfo info) {
+                int args1 =  ctx.getIntArg(0);
+                int args2 = ctx.getIntArg(1);
+                int args3 = ctx.getIntArg(2);
+                int args4 = ctx.getIntArg(3);
+                int args5 = ctx.getIntArg(4);
+                if(args2 > 10 ){
+//                    System.out.println(Arrays.toString(ctx.getPointerArg(4).getByteArray(0, 8)));
+                }
+                System.out.println("[args1] " + args1 + " [args2] " + args2 + " [args3] " + args3 + " [args4] " + args4  + " [arags5] " + args5 + " was called from " + emulator.<RegisterContext>getContext().getLRPointer());
             }
         });
     }

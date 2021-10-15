@@ -14,8 +14,6 @@ import com.github.unidbg.linux.android.dvm.array.ByteArray;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmBoolean;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmInteger;
 import com.github.unidbg.linux.android.dvm.wrapper.DvmLong;
-import javafx.application.Application;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -54,6 +52,8 @@ public abstract class AbstractJni implements Jni {
                 return new StringObject(vm, SystemService.KEYGUARD_SERVICE);
             case "android/content/Context->ACTIVITY_SERVICE:Ljava/lang/String;":
                 return new StringObject(vm, SystemService.ACTIVITY_SERVICE);
+            case "android/content/Context->WINDOW_SERVICE:Ljava/lang/String;":
+                return new StringObject(vm, SystemService.WINDOW_SERVICE);
             case "java/lang/Void->TYPE:Ljava/lang/Class;":
                 return vm.resolveClass("java/lang/Void");
             case "java/lang/Boolean->TYPE:Ljava/lang/Class;":
@@ -72,6 +72,7 @@ public abstract class AbstractJni implements Jni {
                 return vm.resolveClass("java/lang/Float");
             case "java/lang/Double->TYPE:Ljava/lang/Class;":
                 return vm.resolveClass("java/lang/Double");
+
         }
 
         throw new UnsupportedOperationException(signature);
@@ -356,6 +357,15 @@ public abstract class AbstractJni implements Jni {
             case "java/util/Set->iterator()Ljava/util/Iterator;":
                 Set<?> set = (Set<?>) dvmObject.getValue();
                 return vm.resolveClass("java/util/Iterator").newObject(set.iterator());
+            case "android/content/Intent->getExtras()Landroid/os/Bundle;":
+                return vm.resolveClass("android/os/Bundle").newObject(null);
+            case "android/os/Bundle->keySet()Ljava/util/Set;":
+                Set<?> set_buddle = (Set<?>) dvmObject.getValue();
+                return vm.resolveClass("java/util/Set").newObject(null);
+            case "java/util/Set->toArray()[Ljava/lang/Object;":
+                Set<?> set_2 = (Set<?>) dvmObject.getValue();
+                System.out.println(set_2);
+                return new ArrayObject();
         }
 
         throw new UnsupportedOperationException(signature);
@@ -410,6 +420,8 @@ public abstract class AbstractJni implements Jni {
                     throw new IllegalStateException(e);
                 }
             }
+            case "java/net/NetworkInterface->getNetworkInterfaces()Ljava/util/Enumeration;":
+                return vm.resolveClass("java/util/Enumeration").newObject(null);
         }
 
         throw new UnsupportedOperationException(signature);
@@ -469,6 +481,10 @@ public abstract class AbstractJni implements Jni {
             case "java/util/Map->size()I":
                 Map<?, ?> map = (Map<?, ?>) dvmObject.getValue();
                 return map.size();
+            case "java/lang/String->hashCode()I":
+                String str = (String) dvmObject.getValue();
+                System.out.println("[hashcode]: " + str + " [value]: " + str.hashCode());
+                return str.hashCode();
         }
 
         throw new UnsupportedOperationException(signature);
@@ -498,6 +514,8 @@ public abstract class AbstractJni implements Jni {
     public boolean callBooleanMethod(BaseVM vm, DvmObject<?> dvmObject, DvmMethod dvmMethod, VarArg varArg) {
         switch (dvmMethod.getSignature()){
             case "android/os/Debug->isDebuggerConnected()Z":
+                return false;
+            case "java/util/Enumeration->hasMoreElements()Z":
                 return false;
         }
         return callBooleanMethod(vm, dvmObject, dvmMethod.getSignature(), varArg);
@@ -540,6 +558,14 @@ public abstract class AbstractJni implements Jni {
 
     @Override
     public int getIntField(BaseVM vm, DvmObject<?> dvmObject, String signature) {
+        switch (signature){
+            case "android/util/DisplayMetrics->densityDpi:I":
+                return 1080;
+            case "android/util/DisplayMetrics->widthPixels:I":
+                return 2;
+            case "android/util/DisplayMetrics->heightPixels:I":
+                return 2;
+        }
         throw new UnsupportedOperationException(signature);
     }
 
@@ -652,7 +678,10 @@ public abstract class AbstractJni implements Jni {
                 }catch (IOException e){
                     e.printStackTrace();
                 }
-
+            case "android/util/DisplayMetrics-><init>()V":
+                return vm.resolveClass("android/util/DisplayMetrics").newObject(signature);
+            case "android/content/IntentFilter-><init>(Ljava/lang/String;)V":
+                return vm.resolveClass("android/content/IntentFilter").newObject(signature);
         }
 
         throw new UnsupportedOperationException(signature);
@@ -769,6 +798,16 @@ public abstract class AbstractJni implements Jni {
                     throw new IllegalStateException(e);
                 }
             }
+            case "android/view/WindowManager->getDefaultDisplay()Landroid/view/Display;":
+                return vm.resolveClass("android/view/Display").newObject(null);
+            case "android/content/Context->getSystemService(Ljava/lang/String;)Ljava/lang/Object;":
+                String arg = varArg.getObjectArg(0).getValue().toString();
+                System.out.println("[getSystemService][ARG-0]: " + arg);
+                if(arg.equals("phone")){
+                    return vm.resolveClass("android/telephony/TelephonyManager").newObject(signature);
+                }else{
+                    return vm.resolveClass("android/view/WindowManager").newObject(signature);
+                }
             case "android/content/Context->getPackageManager()Landroid/content/pm/PackageManager;":
             case "android/app/Activity->getPackageManager()Landroid/content/pm/PackageManager;":
                 return vm.resolveClass("android/content/pm/PackageManager").newObject(null);
@@ -828,6 +867,8 @@ public abstract class AbstractJni implements Jni {
                 return new StringObject(vm,  String.valueOf(310150123456789L));
             case "android/telephony/TelephonyManager->getSubscriberId()Ljava/lang/String;":
                 return new StringObject(vm, "898601YYMHAAAXXXXXXP");
+            case "android/content/Context->registerReceiver(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;":
+                return vm.resolveClass("android/content/Intent").newObject(signature);
         }
 
         throw new UnsupportedOperationException(signature);
@@ -915,6 +956,8 @@ public abstract class AbstractJni implements Jni {
                 }catch (IOException e){
                     e.printStackTrace();
                 }
+                return;
+            case "android/view/Display->getRealMetrics(Landroid/util/DisplayMetrics;)V":
                 return;
         }
         throw new UnsupportedOperationException(signature);

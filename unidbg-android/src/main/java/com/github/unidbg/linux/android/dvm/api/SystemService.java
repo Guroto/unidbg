@@ -15,6 +15,7 @@ public class SystemService extends DvmObject<String> {
     public static final String ACTIVITY_SERVICE = "activity";
     public static final String SENSOR_SERVICE = "sensor";
     public static final String INPUT_METHOD_SERVICE = "input_method";
+    public static final String WINDOW_SERVICE = "window";
 
     public SystemService(VM vm, String serviceName) {
         super(getObjectType(vm, serviceName), serviceName);
@@ -38,6 +39,8 @@ public class SystemService extends DvmObject<String> {
                 return vm.resolveClass("android/hardware/SensorManager");
             case INPUT_METHOD_SERVICE:
                 return vm.resolveClass("android/view/inputmethod/InputMethodManager");
+            case WINDOW_SERVICE:
+                return vm.resolveClass("android/view/WindowManager");
             default:
                 throw new BackendException("service failed: " + serviceName);
         }
