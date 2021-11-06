@@ -1,5 +1,6 @@
 package com.github.unidbg.arm;
 
+import capstone.Arm;
 import capstone.Capstone;
 import com.github.unidbg.AbstractEmulator;
 import com.github.unidbg.Family;
@@ -34,6 +35,8 @@ import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractEmulator<T> implements ARMEmulator<T> {
 
@@ -205,6 +208,15 @@ public abstract class AbstractARMEmulator<T extends NewFileIO> extends AbstractE
         for (Capstone.CsInsn ins : insns) {
             sb.append("### Trace Instruction ");
             sb.append(ARM.assembleDetail(this, ins, address, thumb));
+            Set<Integer> regset = new HashSet<Integer>();
+
+            Arm.OpInfo opInfo = (Arm.OpInfo) ins.operands;
+            for(int i = 0; i<opInfo.op.length; i++){
+                regset.add(opInfo.op[i].value.reg);
+            }
+
+            String RegChange = ARM.SaveRegs(this, regset);
+            sb.append(RegChange);
             sb.append('\n');
             address += ins.size;
         }

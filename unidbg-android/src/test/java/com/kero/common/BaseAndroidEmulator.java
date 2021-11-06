@@ -136,6 +136,8 @@ public abstract class BaseAndroidEmulator extends AbstractJni implements IOResol
         }else if(("/system/build.prop".equals(pathname))){
             String content = FileProcess.readFile(systemRootDir + "build.prop");
             return FileResult.success(new ByteArrayFileIO(oflags, pathname, content.getBytes()));
+        }else if(("/data".equals(pathname))){
+
         }
         return null;
     }

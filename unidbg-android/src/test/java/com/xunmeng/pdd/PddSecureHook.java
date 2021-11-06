@@ -30,20 +30,24 @@ public class PddSecureHook {
             @Override
             public void hook(Backend backend, long address, int size, Object user) {
                 if(address == (module.base + start)){
-                    System.out.println("[HOOK][ADDRESS]: " + (module.base+start));
+//                    System.out.println("[HOOK][ADDRESS]: " + (module.base));
                     RegisterContext ctx = emulator.getContext();
                     Pointer args_0 = ctx.getPointerArg(0);
                     Pointer args_1 = ctx.getPointerArg(1);
                     Pointer args_2 = ctx.getPointerArg(2);
                     Pointer args_3 = ctx.getPointerArg(3);
-                    System.out.println("[HOOK][ARGS-0]" + args_0.getInt(0));
-                    System.out.println("[HOOK][ARGS-1]" + args_1.getInt(0));
-                    System.out.println("[HOOK][ARGS-2]" + args_2.getInt(0));
-                    System.out.println("[HOOK][ARGS-3]" + args_3.getInt(0));
-                    result = ctx.getPointerArg(4);
+//                    System.out.println("[HOOK][ARGS-0]" + args_0.getInt(0));
+                    System.out.println("[HOOK][ARGS-1] " + args_1.getString(0));
+                    System.out.println("[HOOK][ARGS-2]" + args_2.getString(0));
+//                    System.out.println("[HOOK][ARGS-3]" + args_3.getInt(0));
+//                    result = ctx.getPointerArg(1);
+                    result = args_0;
+
                 }else if(address == (module.base + end)){
-                    Inspector.inspect(result.getByteArray(0, length),
-                            "[HOOK][" + Long.toHexString(start) + "][RESULT]");
+                    RegisterContext ctx = emulator.getContext();
+                    System.out.println("result: " + result.getPointer(0).getString(0) + " called from " +  ctx.getLRPointer());
+//                    Inspector.inspect(result.getByteArray(0, length),
+//                            "[HOOK][" + Long.toHexString(start) + "][RESULT]");
                 }
             }
 

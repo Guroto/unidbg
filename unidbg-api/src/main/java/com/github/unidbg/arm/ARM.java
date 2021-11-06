@@ -5,12 +5,10 @@ import capstone.Arm64;
 import capstone.Arm64_const;
 import capstone.Arm_const;
 import capstone.Capstone;
-import com.github.unidbg.Alignment;
-import com.github.unidbg.Emulator;
-import com.github.unidbg.Module;
-import com.github.unidbg.Utils;
+import com.github.unidbg.*;
 import com.github.unidbg.arm.backend.Backend;
 import com.github.unidbg.arm.backend.BackendException;
+import com.github.unidbg.file.NewFileIO;
 import com.github.unidbg.memory.Memory;
 import com.github.unidbg.pointer.UnidbgPointer;
 import com.sun.jna.Pointer;
@@ -24,11 +22,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * arm utils
@@ -1254,4 +1248,99 @@ public class ARM {
         return ip.share(-adjust, 0);
     }
 
+    public static <T extends NewFileIO> String SaveRegs(Emulator<?> emulator, Set<Integer> regs) {
+        Backend backend = emulator.getBackend();
+        StringBuilder builder = new StringBuilder();
+        builder.append(">>>");
+        Iterator it = regs.iterator();
+        while(it.hasNext()) {
+            int reg = (int) it.next();
+            Number number;
+            int value;
+            switch (reg) {
+                case ArmConst.UC_ARM_REG_R0:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r0=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R1:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r1=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R2:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r2=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R3:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r3=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R4:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r4=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R5:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r5=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R6:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r6=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R7:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r7=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R8:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " r8=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R9: // UC_ARM_REG_SB
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " sb=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_R10: // UC_ARM_REG_SL
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " sl=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_FP:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " fp=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_IP:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " ip=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_SP:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " SP=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_LR:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " LR=0x%x", value));
+                    break;
+                case ArmConst.UC_ARM_REG_PC:
+                    number = backend.reg_read(reg);
+                    value = number.intValue();
+                    builder.append(String.format(Locale.US, " PC=0x%x", value));
+                    break;
+            }
+        }
+        System.out.println(builder.toString());
+        return builder.toString();
+    };
 }
