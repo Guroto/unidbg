@@ -12,6 +12,7 @@ import com.github.unidbg.linux.android.dvm.*;
 import com.github.unidbg.linux.android.dvm.array.ArrayObject;
 import com.github.unidbg.linux.android.dvm.array.ByteArray;
 import com.github.unidbg.linux.android.SystemPropertyHook;
+import com.github.unidbg.memory.Memory;
 import com.github.unidbg.memory.MemoryBlock;
 import com.github.unidbg.pointer.UnidbgPointer;
 import com.github.unidbg.utils.Inspector;
@@ -46,7 +47,11 @@ public class PddSecure extends BaseAndroidEmulator {
         // hook
         PddSecureHook myHook =  new PddSecureHook(emulator, module);
 //        myHook.hook(0x0009DA38, 0x0009DA5E, 180);
-        myHook.hook(0x47B60, 0x48166, 180);
+//        myHook.hook(0x47B60, 0x48166, 180);
+//        emulator.attach().addBreakPoint(module.base+0x49ED8);
+        emulator.attach().addBreakPoint(module.base+0x49ED8);
+//        emulator.attach().addBreakPoint(module.base+0x4A5DC);
+
     }
 
     public static void main(String[] args) throws IOException {
@@ -59,7 +64,8 @@ public class PddSecure extends BaseAndroidEmulator {
 //        pddSecure.inlineHookSub_42B70();
 //        pddSecure.keyProcess();
 //        pddSecure.inlineHookSub_9DA38();
-        pddSecure.UserEnv();
+//        pddSecure.UserEnv();
+        pddSecure.encrypt();
     }
 
     @Override
@@ -250,12 +256,42 @@ public class PddSecure extends BaseAndroidEmulator {
 //        Number number = module.callFunction(emulator, 0x40B9D, params.toArray())[0];
 //        Module module = dm_userEnv.getModule();
         Number number = module.callFunction(emulator, "GetUserEnvStr", params.toArray())[0];
-//        UnidbgPointer ptr = UnidbgPointer.pointer(emulator, number.intValue());
-//        String target = ptr.getPointer(0).getString(0, "utf-8");
-//        System.out.println("target: " + target);
-//        System.out.println(number.intValue());
-        String result = vm.getObject(number.intValue()).getValue().toString();
+        UnidbgPointer ptr = UnidbgPointer.pointer(emulator, number.intValue());
+        String result = ptr.getString(0);
         System.out.println("[GENERATE DATA]: " + result);
+    }
+
+    public void encrypt(){
+        List<Object> params = new ArrayList<>(10);
+
+        String data = "{\"6\": {\"1\": [\"\"]},\"7\": {\"0\": [\"\"]}, \"an\":14,\"id\":\"5edba3272d342595\",\"seq\":1,\"ts\":1636184790479, \"ver\":\"1.0.9\"}";
+        MemoryBlock data_digest = emulator.getMemory().malloc(data.length()+1, false);
+        UnidbgPointer data_digest_ptr = data_digest.getPointer();
+        data_digest_ptr.write(data.getBytes());
+
+        MemoryBlock args1_digest = emulator.getMemory().malloc(4, false);
+        UnidbgPointer args1_ptr = args1_digest.getPointer();
+        args1_ptr.write(ByteProcess.intToByteLittle(data_digest_ptr.toIntPeer()));
+
+        MemoryBlock args2_digest = emulator.getMemory().malloc(4, false);
+        UnidbgPointer args2_ptr = args2_digest.getPointer();
+        args2_ptr.write(new byte[]{110, 0, 0, 0});
+
+        MemoryBlock result = emulator.getMemory().malloc(4, false);
+        UnidbgPointer result_ptr = result.getPointer();
+        result_ptr.write(new byte[]{0, 0, 0, 0});
+
+        MemoryBlock args3_digest = emulator.getMemory().malloc(4, false);
+        UnidbgPointer args3_ptr = args3_digest.getPointer();
+        args1_ptr.write(ByteProcess.intToByteLittle(args3_ptr.toIntPeer()));
+
+
+        params.add(args1_ptr);
+        params.add(args2_ptr);
+        params.add(args3_ptr);
+
+        module.callFunction(emulator, 0x49ED8+1, params.toArray());
+        Inspector.inspect(args3_ptr.getPointer(0).getByteArray(0, 128), "output");
     }
 
     public void keyProcess() throws IOException {
