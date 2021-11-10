@@ -45,5 +45,4 @@ public class SystemService extends DvmObject<String> {
                 throw new BackendException("service failed: " + serviceName);
         }
     }
-
 }

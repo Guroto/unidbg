@@ -20,6 +20,7 @@ import com.kero.common.BaseAndroidEmulator;
 import com.kero.kit.ByteProcess;
 import com.kero.kit.gzipProcess;
 import com.sun.jna.Pointer;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -41,31 +42,24 @@ public class PddSecure extends BaseAndroidEmulator {
 
     public PddSecure(){
         super(processName, APKPath, baseSoPath, soList, verbose);
-        DalvikModule dm_userEnv = vm.loadLibrary(new File(baseSoPath + "libUserEnv.so"), true);
-        dm_userEnv.callJNI_OnLoad(emulator);
 
         // hook
         PddSecureHook myHook =  new PddSecureHook(emulator, module);
 //        myHook.hook(0x0009DA38, 0x0009DA5E, 180);
 //        myHook.hook(0x47B60, 0x48166, 180);
 //        emulator.attach().addBreakPoint(module.base+0x49ED8);
-        emulator.attach().addBreakPoint(module.base+0x49ED8);
-//        emulator.attach().addBreakPoint(module.base+0x4A5DC);
+//        emulator.attach().addBreakPoint(module.base+0x49ED8);
+//        emulator.attach().addBreakPoint(module.base+0x49BBC);
+//        emulator.attach().addBreakPoint(module.base+0x49D20);
 
     }
 
     public static void main(String[] args) throws IOException {
-        Logger.getLogger(String.valueOf(DalvikVM.class)).setLevel(Level.DEBUG);
-        Logger.getLogger(String.valueOf(BaseVM.class)).setLevel(Level.DEBUG);
-//        Logger.getLogger(String.valueOf(SystemPropertyHook.class)).setLevel(Level.DEBUG);
         PddSecure pddSecure = new PddSecure();
-//        pddSecure.deviceInfo2();
-//        pddSecure.generateData();
-//        pddSecure.inlineHookSub_42B70();
+        pddSecure.generateData();
 //        pddSecure.keyProcess();
-//        pddSecure.inlineHookSub_9DA38();
-//        pddSecure.UserEnv();
-        pddSecure.encrypt();
+//        String userEnv = pddSecure.encrypt("5edba3272d342595", "1636440667405");
+//        System.out.println(userEnv);
     }
 
     @Override
@@ -242,7 +236,6 @@ public class PddSecure extends BaseAndroidEmulator {
         params.add(1634194801708L);
 
         Number number = module.callFunction(emulator, 0x247D, params.toArray())[0];
-//        Number number = module.callFunction(emulator, 0x4354D, params.toArray())[0];
         System.out.println(number);
         String result = vm.getObject(number.intValue()).getValue().toString();
         System.out.println("[GENERATE DATA]: " + result);
@@ -261,37 +254,52 @@ public class PddSecure extends BaseAndroidEmulator {
         System.out.println("[GENERATE DATA]: " + result);
     }
 
-    public void encrypt(){
+    public String encrypt(String android_id, String timestamp) throws IOException {
         List<Object> params = new ArrayList<>(10);
+        String data = String.format("{\"4\":{\"0\":[\"\"],\"1\":[\"\"]},\"6\":{\"1\":[\"\"]},\"7\":{\"0\":[\"\"]},\"an\":14,\"id\":\"%s\",\"seq\":2,\"ts\":%s,\"ver\":\"1.0.9\"}", android_id, timestamp);
+        System.out.println(data);
+        int dataLength = data.length() + 1;
 
-        String data = "{\"6\": {\"1\": [\"\"]},\"7\": {\"0\": [\"\"]}, \"an\":14,\"id\":\"5edba3272d342595\",\"seq\":1,\"ts\":1636184790479, \"ver\":\"1.0.9\"}";
-        MemoryBlock data_digest = emulator.getMemory().malloc(data.length()+1, false);
-        UnidbgPointer data_digest_ptr = data_digest.getPointer();
-        data_digest_ptr.write(data.getBytes());
 
-        MemoryBlock args1_digest = emulator.getMemory().malloc(4, false);
+        MemoryBlock args_1_1 = emulator.getMemory().malloc(dataLength, false);
+        UnidbgPointer args_1_1_ptr = args_1_1.getPointer();
+        byte[] content = new byte[dataLength];
+        System.arraycopy(data.getBytes(), 0, content, 0, data.length());
+        System.arraycopy(new byte[1], 0, content, data.length(), 1);
+
+        args_1_1_ptr.write(content);
+
+        MemoryBlock args_1_2 = emulator.getMemory().malloc(1, false);
+        UnidbgPointer args_1_2_ptr = args_1_2.getPointer();
+        args_1_2_ptr.write(new byte[]{(byte)0x7c});
+
+        byte[] args_1_mem = new byte[8];
+        byte[] args_1_1_mem = ByteProcess.intToByteLittle(args_1_1_ptr.toIntPeer());
+        byte[] args_1_2_mem = ByteProcess.intToByteLittle(args_1_2_ptr.toIntPeer());
+        System.arraycopy(args_1_1_mem, 0, args_1_mem, 0, args_1_1_mem.length);
+        System.arraycopy(args_1_2_mem, 0, args_1_mem, 4, args_1_2_mem.length);
+
+
+        MemoryBlock args1_digest = emulator.getMemory().malloc(8, false);
         UnidbgPointer args1_ptr = args1_digest.getPointer();
-        args1_ptr.write(ByteProcess.intToByteLittle(data_digest_ptr.toIntPeer()));
+        args1_ptr.write(args_1_mem);
 
         MemoryBlock args2_digest = emulator.getMemory().malloc(4, false);
         UnidbgPointer args2_ptr = args2_digest.getPointer();
-        args2_ptr.write(new byte[]{110, 0, 0, 0});
+        args2_ptr.write(new byte[]{(byte)(dataLength), 0, 0, 0});
 
         MemoryBlock result = emulator.getMemory().malloc(4, false);
         UnidbgPointer result_ptr = result.getPointer();
-        result_ptr.write(new byte[]{0, 0, 0, 0});
-
-        MemoryBlock args3_digest = emulator.getMemory().malloc(4, false);
-        UnidbgPointer args3_ptr = args3_digest.getPointer();
-        args1_ptr.write(ByteProcess.intToByteLittle(args3_ptr.toIntPeer()));
+        result_ptr.write(new byte[136]);
 
 
         params.add(args1_ptr);
         params.add(args2_ptr);
-        params.add(args3_ptr);
+        params.add(result_ptr);
 
         module.callFunction(emulator, 0x49ED8+1, params.toArray());
-        Inspector.inspect(args3_ptr.getPointer(0).getByteArray(0, 128), "output");
+        ByteProcess.hexDump(result_ptr.getPointer(0).getByteArray(0, 136), "result");
+        return Base64.encodeBase64String(result_ptr.getPointer(0).getByteArray(0, 136));
     }
 
     public void keyProcess() throws IOException {
